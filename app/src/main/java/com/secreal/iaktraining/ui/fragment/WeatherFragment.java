@@ -3,6 +3,8 @@ package com.secreal.iaktraining.ui.fragment;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,12 +18,16 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.secreal.iaktraining.R;
+import com.secreal.iaktraining.adapters.WeatherAdapter;
 import com.secreal.iaktraining.config.Constant;
 import com.secreal.iaktraining.models.WeatherModel;
+import com.secreal.iaktraining.models.WeatherModelList;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -50,6 +56,11 @@ public class WeatherFragment extends Fragment {
     @BindView(R.id.txKota) TextView txKota;
     @BindView(R.id.imgUtama) ImageView imgUtama;
     @BindView(R.id.imgCuaca) ImageView imgCuaca;
+    @BindView(R.id.rcCuaca) RecyclerView rcCuaca;
+
+    WeatherAdapter adapterWeather;
+    private ArrayList<WeatherModelList> mWeatherModelLists = new ArrayList<>();
+
     public WeatherFragment() {
         // Required empty public constructor
     }
@@ -87,6 +98,12 @@ public class WeatherFragment extends Fragment {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_weather, container, false);
         ButterKnife.bind(this, rootView);
+
+        adapterWeather = new WeatherAdapter(mWeatherModelLists);
+        rcCuaca.setAdapter(adapterWeather);
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
+        rcCuaca.setLayoutManager(layoutManager);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, Constant.fullUrl, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -105,6 +122,27 @@ public class WeatherFragment extends Fragment {
                     txKota.setText(weatherModel.getCity());
                     txTime.setText(weatherModel.getTime());
 
+                    for(int x = 0; x <10; ++x){
+                        JSONObject object = listArray.getJSONObject(x);
+                        JSONObject main = object.getJSONObject("main");
+                        double maxTempList = main.getInt("temp_max");
+                        double minTempList = main.getInt("temp_min");
+
+                        JSONArray weatherArray = object.getJSONArray("weather");
+                        JSONObject weatherList = weatherArray.getJSONObject(0);
+                        String weatherStatusList = weatherList.getString("main");
+
+                        String dateMonthList = object.getString("dt_txt");
+
+                        WeatherModelList weatherModelList = new WeatherModelList(dateMonthList, weatherStatusList, maxTempList, minTempList);
+                        mWeatherModelLists.add(weatherModelList);
+                        System.out.println(dateMonthList + " " + weatherStatusList);
+                        adapterWeather.notifyDataSetChanged();
+
+
+
+
+                    }
                     Log.d("List ", String.valueOf(listArray));
 
 
@@ -119,6 +157,13 @@ public class WeatherFragment extends Fragment {
             }
         });
                 Volley.newRequestQueue(getContext()).add(jsonObjectRequest);
+        for(WeatherModelList apart: mWeatherModelLists){
+            System.out.print(
+                    apart.getStatus() +" "+
+                    apart.getTime() +" "+
+                            apart.getTempMax() +" "+
+            apart.getTempMin());
+        }
         return rootView;
     }
 
